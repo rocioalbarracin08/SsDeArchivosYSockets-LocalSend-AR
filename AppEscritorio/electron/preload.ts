@@ -1,24 +1,15 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
-// --------- Expose some API to the Renderer process ---------
-contextBridge.exposeInMainWorld('ipcRenderer', {
-  on(...args: Parameters<typeof ipcRenderer.on>) {
-    const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
-  },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
-  },
-  send(...args: Parameters<typeof ipcRenderer.send>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.send(channel, ...omit)
-  },
-  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.invoke(channel, ...omit)
+contextBridge.exposeInMainWorld('api', {
+  buscarDispositivos: () => ipcRenderer.send('buscar-servicios'),
+
+  onDispositivoEncontrado: (callback: (data: any) => void) => {
+    ipcRenderer.on('servicio-encontrado', (_event, data) => callback(data))
   },
 
-  // You can expose other APTs you need here.
-  // ...
+  enviarArchivo: (rutaArchivo: string, ipDestino: string) =>
+    ipcRenderer.send('enviar-archivo', { rutaArchivo, ipDestino }),
+
+  // NUEVO: convierte el objeto File del input en una ruta real de disco.
+  obtenerRutaDeArchivo: (archivo: File) => webUtils.getPathForFile(archivo)
 })

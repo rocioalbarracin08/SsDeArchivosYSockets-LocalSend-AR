@@ -1,22 +1,11 @@
 "use strict";
 const electron = require("electron");
-electron.contextBridge.exposeInMainWorld("ipcRenderer", {
-  on(...args) {
-    const [channel, listener] = args;
-    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
+electron.contextBridge.exposeInMainWorld("api", {
+  buscarDispositivos: () => electron.ipcRenderer.send("buscar-servicios"),
+  onDispositivoEncontrado: (callback) => {
+    electron.ipcRenderer.on("servicio-encontrado", (_event, data) => callback(data));
   },
-  off(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.off(channel, ...omit);
-  },
-  send(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.send(channel, ...omit);
-  },
-  invoke(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.invoke(channel, ...omit);
-  }
-  // You can expose other APTs you need here.
-  // ...
+  enviarArchivo: (rutaArchivo, ipDestino) => electron.ipcRenderer.send("enviar-archivo", { rutaArchivo, ipDestino }),
+  // NUEVO: convierte el objeto File del input en una ruta real de disco.
+  obtenerRutaDeArchivo: (archivo) => electron.webUtils.getPathForFile(archivo)
 });
