@@ -11,15 +11,18 @@
   },
   "dependencies": {
     "@elysiajs/node": "^1.4.5",
-    "bonjour-service": "^1.4.3",
-    "elysia": "^1.4.29",
+    "bonjour-service": "^1.4.4",
+    "elysia": "^1.4.30",
+    "node": "^26.8.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.5.0",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
     "@vitejs/plugin-react": "^4.2.1",

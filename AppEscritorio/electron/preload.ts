@@ -7,9 +7,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('servicio-encontrado', (_event, data) => callback(data))
   },
 
-  enviarArchivo: (rutaArchivo: string, ipDestino: string) =>
-    ipcRenderer.send('enviar-archivo', { rutaArchivo, ipDestino }),
+  enviarArchivo: (rutaArchivo: string, ipDestino: string, puertoDestino: number) =>
+    ipcRenderer.send('enviar-archivo', { rutaArchivo, ipDestino, puertoDestino }),
 
-  // NUEVO: convierte el objeto File del input en una ruta real de disco.
-  obtenerRutaDeArchivo: (archivo: File) => webUtils.getPathForFile(archivo)
+  obtenerRutaDeArchivo: (archivo: File) => webUtils.getPathForFile(archivo),
+
+  cambiarVisibilidad: (visible: boolean) => ipcRenderer.send('cambiar-visibilidad', visible)
 })

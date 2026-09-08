@@ -6,7 +6,6 @@ interface Dispositivo {
   port: number
 }
 
-// Forma interna de cada archivo ya elegido, listo para mostrarse y enviarse.
 interface ArchivoElegido {
   ruta: string
   nombre: string
@@ -15,7 +14,8 @@ interface ArchivoElegido {
 function App() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
   const [archivosElegidos, setArchivosElegidos] = useState<ArchivoElegido[]>([])
-  const [estaArrastrando, setEstaArrastrando] = useState(false) // NUEVO: para el feedback visual de "soltá acá"
+  const [estaArrastrando, setEstaArrastrando] = useState(false)
+  const [visible, setVisible] = useState(true)
   const inputArchivoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -27,8 +27,6 @@ function App() {
     })
   }, [])
 
-  // Convierte una FileList (viene tanto del input como del drop) en nuestro
-  // formato interno, y la suma a lo que ya estaba elegido (no reemplaza).
   function agregarArchivos(lista: FileList) {
     const nuevos: ArchivoElegido[] = Array.from(lista).map((archivo) => ({
       ruta: window.api.obtenerRutaDeArchivo(archivo),
@@ -41,9 +39,8 @@ function App() {
     if (evento.target.files) agregarArchivos(evento.target.files)
   }
 
-  // --- Drag & Drop ---
   function manejarDragOver(evento: React.DragEvent) {
-    evento.preventDefault() // OBLIGATORIO: sin esto, el navegador cancela el drop automáticamente
+    evento.preventDefault()
     setEstaArrastrando(true)
   }
 
@@ -52,7 +49,7 @@ function App() {
   }
 
   function manejarDrop(evento: React.DragEvent) {
-    evento.preventDefault() // evita que el navegador intente "abrir" el archivo
+    evento.preventDefault()
     setEstaArrastrando(false)
     if (evento.dataTransfer.files) agregarArchivos(evento.dataTransfer.files)
   }
@@ -66,40 +63,48 @@ function App() {
       alert('Primero elegí al menos un archivo.')
       return
     }
-    // Por ahora mandamos uno por uno; clienteEnvio.ts (pendiente) recién
-    // va a hacer algo real con esto del lado Main.
     archivosElegidos.forEach((archivo) => {
-      window.api.enviarArchivo(archivo.ruta, dispositivo.addresses[0])
+      window.api.enviarArchivo(archivo.ruta, dispositivo.addresses[0], dispositivo.port)
     })
   }
-  
+
+  function alternarVisibilidad() {
+    const nuevoEstado = !visible
+    setVisible(nuevoEstado)
+    window.api.cambiarVisibilidad(nuevoEstado)
+  }
 
   return (
     <div>
       <h1>LocalSend - Desktop</h1>
 
       <section>
-        <h2>1. Elegir archivos</h2>
+        <h2>Visibilidad</h2>
+        <p>{visible ? 'Visible en la red' : 'Oculto — nadie puede encontrarte'}</p>
+        <button onClick={alternarVisibilidad}>
+          {visible ? 'Desactivar estado visible' : 'Activar estado visible'}
+        </button>
+      </section>
 
-        {/* Zona de drop: reacciona a arrastrar y soltar, sin estilos todavía */}
+      <section>
+        <h2>1. Elegir archivos</h2>
         <div
           onDragOver={manejarDragOver}
           onDragLeave={manejarDragLeave}
           onDrop={manejarDrop}
           style={{ border: '2px dashed gray', padding: '20px' }}
         >
-          {estaArrastrando ? 'Soltá el archivo acá' : 'Arrastrá archivos acá, o elegí manualmente:'}
+          {estaArrastrando ? 'Soltá el archivo acá' : 'Arrastrá archivos acá'}
           <br />
-<input
-  type="file"
-  multiple
-  ref={inputArchivoRef}
-  onChange={manejarSeleccionArchivo}
-  style={{ display: 'none' }} // oculta el control nativo feo con su texto fijo
-/>
-<button onClick={() => inputArchivoRef.current?.click()}>
-  Elegir archivos
-</button>        </div>
+          <input
+            type="file"
+            multiple
+            ref={inputArchivoRef}
+            onChange={manejarSeleccionArchivo}
+            style={{ display: 'none' }}
+          />
+          <button onClick={() => inputArchivoRef.current?.click()}>Elegir archivos</button>
+        </div>
 
         <ul>
           {archivosElegidos.map((a) => (
@@ -114,7 +119,6 @@ function App() {
       <section>
         <h2>2. Dispositivos cercanos</h2>
         <button onClick={() => window.api.buscarDispositivos()}>Buscar dispositivos</button>
-
         <ul>
           {dispositivos.length === 0 && <li>Ningún dispositivo encontrado todavía.</li>}
           {dispositivos.map((d) => (
