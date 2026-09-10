@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import fs from 'node:fs'
 import { Bonjour } from 'bonjour-service'
 import { Elysia } from 'elysia'
 import { node } from '@elysiajs/node'
@@ -9,6 +8,7 @@ import { node } from '@elysiajs/node'
 import { PUERTO_TRANSFERENCIA, TIPO_SERVICIO_BONJOUR, RUTA_WEBSOCKET } from '../../estructuraCompartida/protocolo/constantes'
 import { interpretarMensajeMetadatos, crearMensajeRespuesta } from '../../estructuraCompartida/protocolo/formatoMensaje'
 import { enviarArchivoAPeer } from '../../estructuraCompartida/protocolo/clienteEnvio'
+import { iniciarRecepcion, recibirChunk, cancelarRecepcion } from '../../estructuraCompartida/protocolo/transferenciaRecepcion'
 import { generarIdUnico } from '../../estructuraCompartida/utilidades/generarIdUnico'
 import { generarNombreDispositivo } from '../../estructuraCompartida/utilidades/generarNombreDispositivo'
 
@@ -21,14 +21,6 @@ const nombreDispositivo = generarNombreDispositivo()
 let ventanaPrincipal: BrowserWindow | null = null
 let servicioPublicado: ReturnType<Bonjour['publish']> | null = null
 const bonjour = new Bonjour()
-
-interface EstadoTransferencia {
-  streamEscritura: fs.WriteStream
-  tamañoEsperado: number
-  bytesRecibidos: number
-  nombreArchivo: string
-}
-const transferenciasActivas = new Map<string, EstadoTransferencia>()
 
 function crearVentana() {
   ventanaPrincipal = new BrowserWindow({
@@ -46,46 +38,24 @@ function crearVentana() {
 function iniciarServidorTransferencia() {
   return new Elysia({ adapter: node() })
     .ws(RUTA_WEBSOCKET, {
-      open(conexion) {
-        console.log('Peer conectado:', conexion.id)
+      open() {
+        console.log('Peer conectado.')
       },
       message(conexion, mensaje) {
         // Si es texto, son los metadatos del archivo (JSON).
         if (typeof mensaje === 'string') {
           const descripcion = interpretarMensajeMetadatos(mensaje)
-          const rutaDestino = path.join(app.getPath('downloads'), descripcion.nombre)
-
-          transferenciasActivas.set(conexion.id, {
-            streamEscritura: fs.createWriteStream(rutaDestino),
-            tamañoEsperado: descripcion.tamaño,
-            bytesRecibidos: 0,
-            nombreArchivo: descripcion.nombre
-          })
-
+          iniciarRecepcion(conexion.raw, descripcion)
           // Auto-acepta por ahora; el diálogo real de confirmación va después.
           conexion.send(crearMensajeRespuesta(true))
           return
         }
 
         // Si no es texto, es un chunk binario del archivo.
-        const estado = transferenciasActivas.get(conexion.id)
-        if (!estado) return
-
-        estado.streamEscritura.write(mensaje as Buffer)
-        estado.bytesRecibidos += (mensaje as Buffer).length
-
-        if (estado.bytesRecibidos >= estado.tamañoEsperado) {
-          estado.streamEscritura.end()
-          console.log(`Archivo "${estado.nombreArchivo}" completado.`)
-          transferenciasActivas.delete(conexion.id)
-        }
+        recibirChunk(conexion.raw, mensaje)
       },
       close(conexion) {
-        const estado = transferenciasActivas.get(conexion.id)
-        if (estado) {
-          estado.streamEscritura.end()
-          transferenciasActivas.delete(conexion.id)
-        }
+        cancelarRecepcion(conexion.raw)
       }
     })
     .listen(PUERTO_TRANSFERENCIA)
@@ -120,7 +90,6 @@ function publicarYBuscarDispositivos() {
     const buscador = bonjour.find({ type: TIPO_SERVICIO_BONJOUR })
 
     buscador.on('up', (servicioEncontrado) => {
-      // Nos ignoramos a nosotros mismos comparando el id propio.
       if (servicioEncontrado.txt?.id === idPropio) return
 
       ventanaPrincipal?.webContents.send('servicio-encontrado', {
