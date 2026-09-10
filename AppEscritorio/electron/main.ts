@@ -9,6 +9,7 @@ import { PUERTO_TRANSFERENCIA, TIPO_SERVICIO_BONJOUR, RUTA_WEBSOCKET } from '../
 import { interpretarMensajeMetadatos, crearMensajeRespuesta } from '../../estructuraCompartida/protocolo/formatoMensaje'
 import { enviarArchivoAPeer } from '../../estructuraCompartida/protocolo/clienteEnvio'
 import { iniciarRecepcion, recibirChunk, cancelarRecepcion } from '../../estructuraCompartida/protocolo/transferenciaRecepcion'
+import { registrarSolicitud, tomarSolicitud } from '../../estructuraCompartida/protocolo/solicitudesPendientes'
 import { generarIdUnico } from '../../estructuraCompartida/utilidades/generarIdUnico'
 import { generarNombreDispositivo } from '../../estructuraCompartida/utilidades/generarNombreDispositivo'
 
@@ -21,8 +22,6 @@ let ventanaPrincipal: BrowserWindow | null = null
 let servicioPublicado: ReturnType<Bonjour['publish']> | null = null
 const bonjour = new Bonjour()
 
-// Guardamos acá todo lo que ya descubrimos, para poder reenviarlo al Renderer
-// cuando pida "buscar" de nuevo, sin tener que crear un buscador nuevo cada vez.
 interface DispositivoEncontrado {
   name: string
   addresses: string[]
@@ -43,25 +42,24 @@ function crearVentana() {
   ventanaPrincipal.loadURL(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173')
 }
 
-// Servidor de transferencia: ahora con "ws" puro en vez de Elysia,
-// para tener control directo y confiable sobre datos de texto vs binarios.
 function iniciarServidorTransferencia() {
   const servidorHttp = createServer()
   const servidorWs = new WebSocketServer({ server: servidorHttp, path: RUTA_WEBSOCKET })
 
   servidorWs.on('connection', (conexion) => {
-    console.log('Peer conectado.')
-
     conexion.on('message', (datos, esBinario) => {
       if (!esBinario) {
-        // Mensaje de texto: son los metadatos del archivo.
+        // Llegaron los metadatos: en vez de aceptar solo, le preguntamos al usuario.
         const descripcion = interpretarMensajeMetadatos(datos.toString())
-        iniciarRecepcion(conexion, descripcion)
-        conexion.send(crearMensajeRespuesta(true))
+        const transferId = generarIdUnico()
+
+        registrarSolicitud(transferId, conexion, descripcion)
+        ventanaPrincipal?.webContents.send('solicitud-transferencia', { transferId, descripcion })
         return
       }
-      // Mensaje binario: es un chunk del archivo. "ws" siempre entrega
-      // datos binarios como Buffer real, sin ambigüedad.
+
+      // Chunk binario: solo se procesa si ya existe una recepción iniciada
+      // (o sea, si el usuario ya aceptó antes).
       recibirChunk(conexion, datos as Buffer)
     })
 
@@ -74,6 +72,25 @@ function iniciarServidorTransferencia() {
   console.log(`Servidor de transferencia escuchando en el puerto ${PUERTO_TRANSFERENCIA}`)
 }
 
+// NUEVO: el usuario ya decidió Aceptar o Rechazar desde la interfaz.
+function manejarRespuestaDeUsuario(transferId: string, aceptado: boolean) {
+  const solicitud = tomarSolicitud(transferId)
+  if (!solicitud) return
+
+  solicitud.conexion.send(crearMensajeRespuesta(aceptado))
+
+  if (aceptado) {
+    iniciarRecepcion(solicitud.conexion, solicitud.descripcion, (bytesRecibidos, tamañoEsperado) => {
+      ventanaPrincipal?.webContents.send('progreso-transferencia', {
+        transferId,
+        nombreArchivo: solicitud.descripcion.nombre,
+        bytesRecibidos,
+        tamañoEsperado
+      })
+    })
+  }
+}
+
 function activarVisibilidad() {
   servicioPublicado = bonjour.publish({
     name: nombreDispositivo,
@@ -81,19 +98,11 @@ function activarVisibilidad() {
     port: PUERTO_TRANSFERENCIA,
     txt: { version: '1.0.0', id: idPropio }
   })
-
-  servicioPublicado.on('up', () => {
-    console.log(`Anunciado como "${nombreDispositivo}" en la red.`)
-  })
-
-  servicioPublicado.on('error', (error: Error) => {
-    console.warn('Aviso Bonjour:', error.message)
-  })
+  servicioPublicado.on('up', () => console.log(`Anunciado como "${nombreDispositivo}" en la red.`))
+  servicioPublicado.on('error', (error: Error) => console.warn('Aviso Bonjour:', error.message))
 }
 
 function desactivarVisibilidad() {
-  // .stop() manda el "aviso de despedida" a la red, así los demás
-  // saben que ya no estamos disponibles y nos sacan de su lista.
   servicioPublicado?.stop(() => console.log('Dejamos de anunciarnos en la red.'))
   servicioPublicado = null
 }
@@ -101,7 +110,6 @@ function desactivarVisibilidad() {
 function publicarYBuscarDispositivos() {
   activarVisibilidad()
 
-  // Un solo buscador, creado una vez, escuchando durante toda la vida de la app.
   const buscador = bonjour.find({ type: TIPO_SERVICIO_BONJOUR })
 
   buscador.on('up', (servicioEncontrado) => {
@@ -116,15 +124,12 @@ function publicarYBuscarDispositivos() {
     ventanaPrincipal?.webContents.send('servicio-encontrado', dispositivo)
   })
 
-  // NUEVO: cuando un dispositivo se apaga o deja de anunciarse, lo sacamos
-  // de nuestra lista y avisamos al Renderer para que también lo saque.
   buscador.on('down', (servicioPerdido) => {
     dispositivosConocidos.delete(servicioPerdido.name)
     ventanaPrincipal?.webContents.send('servicio-perdido', { name: servicioPerdido.name })
   })
 
   ipcMain.on('buscar-servicios', () => {
-    // Reenviamos todo lo que ya sabemos hasta ahora (el buscador nunca se detuvo).
     dispositivosConocidos.forEach((dispositivo) => {
       ventanaPrincipal?.webContents.send('servicio-encontrado', dispositivo)
     })
@@ -137,8 +142,12 @@ function publicarYBuscarDispositivos() {
 }
 
 ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; ipDestino: string; puertoDestino: number }) => {
-  // Le pasamos nuestro propio nombre de dispositivo, así el receptor sabe quién le mandó esto.
   enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino, nombreDispositivo)
+})
+
+// NUEVO: escucha la decisión del usuario desde el diálogo de React.
+ipcMain.on('respuesta-transferencia', (_evento, datos: { transferId: string; aceptado: boolean }) => {
+  manejarRespuestaDeUsuario(datos.transferId, datos.aceptado)
 })
 
 if (process.platform === 'linux') {

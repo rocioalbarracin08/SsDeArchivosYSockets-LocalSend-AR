@@ -16,5 +16,17 @@ contextBridge.exposeInMainWorld('api', {
 
   obtenerRutaDeArchivo: (archivo: File) => webUtils.getPathForFile(archivo),
 
-  cambiarVisibilidad: (visible: boolean) => ipcRenderer.send('cambiar-visibilidad', visible)
+  cambiarVisibilidad: (visible: boolean) => ipcRenderer.send('cambiar-visibilidad', visible),
+
+  // NUEVO: diálogo de aceptación
+  onSolicitudTransferencia: (callback: (data: any) => void) => {
+    ipcRenderer.on('solicitud-transferencia', (_event, data) => callback(data))
+  },
+  responderTransferencia: (transferId: string, aceptado: boolean) =>
+    ipcRenderer.send('respuesta-transferencia', { transferId, aceptado }),
+
+  // NUEVO: progreso en tiempo real
+  onProgresoTransferencia: (callback: (data: any) => void) => {
+    ipcRenderer.on('progreso-transferencia', (_event, data) => callback(data))
+  }
 })

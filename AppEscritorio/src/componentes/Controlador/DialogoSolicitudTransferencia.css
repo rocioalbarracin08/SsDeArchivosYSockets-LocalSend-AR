@@ -1,0 +1,70 @@
+.fondo-dialogo {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.tarjeta-dialogo {
+  background: #121218;
+  border: 1px solid #3a2e35;
+  border-radius: 12px;
+  padding: 28px 32px;
+  min-width: 320px;
+  box-shadow: 0 8px 30px rgba(156, 124, 140, 0.15);
+}
+
+.texto-remitente {
+  color: #b08a9e;
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+.texto-nombre-archivo {
+  color: #f2ecef;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  word-break: break-all;
+}
+
+.texto-peso-archivo {
+  color: #8a8590;
+  font-size: 13px;
+  margin: 0 0 24px;
+}
+
+.fila-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.boton-rechazar,
+.boton-aceptar {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.boton-rechazar {
+  background: #1e1b1f;
+  color: #c9c2c7;
+}
+
+.boton-aceptar {
+  background: #9c7c8c;
+  color: #0a0a0f;
+  font-weight: 600;
+}
+
+.boton-rechazar:hover,
+.boton-aceptar:hover {
+  opacity: 0.85;
+}

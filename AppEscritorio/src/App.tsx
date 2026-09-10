@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import DialogoSolicitudTransferencia from './componentes/Controlador/DialogoSolicitudTransferencia'
+import BarraProgreso from './componentes/Contenido/BarraProgreso'
 
 interface Dispositivo {
   name: string
@@ -11,11 +13,25 @@ interface ArchivoElegido {
   nombre: string
 }
 
+interface SolicitudTransferencia {
+  transferId: string
+  descripcion: { nombre: string; tamaño: number; tipo: string; remitente: string }
+}
+
+interface ProgresoTransferencia {
+  transferId: string
+  nombreArchivo: string
+  bytesRecibidos: number
+  tamañoEsperado: number
+}
+
 function App() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
   const [archivosElegidos, setArchivosElegidos] = useState<ArchivoElegido[]>([])
   const [estaArrastrando, setEstaArrastrando] = useState(false)
   const [visible, setVisible] = useState(true)
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState<SolicitudTransferencia[]>([])
+  const [progresos, setProgresos] = useState<Record<string, ProgresoTransferencia>>({})
   const inputArchivoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -25,9 +41,25 @@ function App() {
         return yaExiste ? previos : [...previos, data]
       })
     })
+  }, [])
 
+  useEffect(() => {
     window.api.onDispositivoPerdido((data: { name: string }) => {
       setDispositivos((previos) => previos.filter((d) => d.name !== data.name))
+    })
+  }, [])
+
+  // NUEVO: llegó una solicitud de transferencia, la sumamos a la cola de pendientes.
+  useEffect(() => {
+    window.api.onSolicitudTransferencia((data: SolicitudTransferencia) => {
+      setSolicitudesPendientes((previas) => [...previas, data])
+    })
+  }, [])
+
+  // NUEVO: progreso en tiempo real de cada transferencia aceptada.
+  useEffect(() => {
+    window.api.onProgresoTransferencia((data: ProgresoTransferencia) => {
+      setProgresos((previos) => ({ ...previos, [data.transferId]: data }))
     })
   }, [])
 
@@ -78,6 +110,14 @@ function App() {
     window.api.cambiarVisibilidad(nuevoEstado)
   }
 
+  // NUEVO: el usuario decidió sobre una solicitud, la sacamos de la cola.
+  function responderSolicitud(transferId: string, aceptado: boolean) {
+    window.api.responderTransferencia(transferId, aceptado)
+    setSolicitudesPendientes((previas) => previas.filter((s) => s.transferId !== transferId))
+  }
+
+  const solicitudActual = solicitudesPendientes[0]
+
   return (
     <div>
       <h1>LocalSend - Desktop</h1>
@@ -122,7 +162,7 @@ function App() {
 
       <section>
         <h2>2. Dispositivos cercanos</h2>
-        <button onClick={() => window.api.buscarDispositivos()}>Buscar dispositivos</button>
+        <button onClick={() => window.api.buscarDispositivos()}>Actualizar lista</button>
         <ul>
           {dispositivos.length === 0 && <li>Ningún dispositivo encontrado todavía.</li>}
           {dispositivos.map((d) => (
@@ -133,6 +173,20 @@ function App() {
           ))}
         </ul>
       </section>
+
+      <section>
+        <h2>3. Transferencias en curso</h2>
+        <BarraProgreso transferencias={Object.values(progresos)} />
+      </section>
+
+      {solicitudActual && (
+        <DialogoSolicitudTransferencia
+          transferId={solicitudActual.transferId}
+          descripcion={solicitudActual.descripcion}
+          onAceptar={(id) => responderSolicitud(id, true)}
+          onRechazar={(id) => responderSolicitud(id, false)}
+        />
+      )}
     </div>
   )
 }

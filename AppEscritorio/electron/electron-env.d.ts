@@ -6,5 +6,8 @@ interface Window {
     enviarArchivo: (rutaArchivo: string, ipDestino: string, puertoDestino: number) => void
     obtenerRutaDeArchivo: (archivo: File) => string
     cambiarVisibilidad: (visible: boolean) => void
+    onSolicitudTransferencia: (callback: (data: any) => void) => void
+    responderTransferencia: (transferId: string, aceptado: boolean) => void
+    onProgresoTransferencia: (callback: (data: any) => void) => void
   }
 }

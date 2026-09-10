@@ -9733,13 +9733,14 @@ async function* dividirEnChunks(rutaArchivo) {
     yield pedazo;
   }
 }
-function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino) {
+function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino, nombreRemitente) {
   const nombreArchivo = path.basename(rutaArchivo);
   const tamañoArchivo = fs.statSync(rutaArchivo).size;
   const descripcion = {
     nombre: nombreArchivo,
     tamaño: tamañoArchivo,
-    tipo: path.extname(rutaArchivo)
+    tipo: path.extname(rutaArchivo),
+    remitente: nombreRemitente
   };
   const socket = new WebSocket$1(`ws://${ipDestino}:${puertoDestino}${RUTA_WEBSOCKET}`);
   socket.on("open", () => {
@@ -9762,13 +9763,14 @@ function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino) {
   });
 }
 const transferenciasActivas = /* @__PURE__ */ new Map();
-function iniciarRecepcion(conexion, descripcion) {
+function iniciarRecepcion(conexion, descripcion, notificarProgreso) {
   const rutaDestino = path.join(app.getPath("downloads"), descripcion.nombre);
   transferenciasActivas.set(conexion, {
     streamEscritura: fs.createWriteStream(rutaDestino),
     tamañoEsperado: descripcion.tamaño,
     bytesRecibidos: 0,
-    nombreArchivo: descripcion.nombre
+    nombreArchivo: descripcion.nombre,
+    notificarProgreso
   });
 }
 function recibirChunk(conexion, chunk) {
@@ -9776,10 +9778,10 @@ function recibirChunk(conexion, chunk) {
   if (!estado) return false;
   estado.streamEscritura.write(chunk);
   estado.bytesRecibidos += chunk.length;
+  estado.notificarProgreso(estado.bytesRecibidos, estado.tamañoEsperado);
   const transferenciaCompleta = estado.bytesRecibidos >= estado.tamañoEsperado;
   if (transferenciaCompleta) {
     estado.streamEscritura.end();
-    console.log(`Archivo "${estado.nombreArchivo}" completado.`);
     transferenciasActivas.delete(conexion);
   }
   return transferenciaCompleta;
@@ -9790,6 +9792,15 @@ function cancelarRecepcion(conexion) {
     estado.streamEscritura.end();
     transferenciasActivas.delete(conexion);
   }
+}
+const solicitudesPendientes = /* @__PURE__ */ new Map();
+function registrarSolicitud(transferId, conexion, descripcion) {
+  solicitudesPendientes.set(transferId, { conexion, descripcion });
+}
+function tomarSolicitud(transferId) {
+  const solicitud = solicitudesPendientes.get(transferId);
+  solicitudesPendientes.delete(transferId);
+  return solicitud;
 }
 function generarIdUnico() {
   return randomUUID();
@@ -9824,12 +9835,12 @@ function iniciarServidorTransferencia() {
   const servidorHttp = createServer();
   const servidorWs = new WebSocketServer$1({ server: servidorHttp, path: RUTA_WEBSOCKET });
   servidorWs.on("connection", (conexion) => {
-    console.log("Peer conectado.");
     conexion.on("message", (datos, esBinario) => {
       if (!esBinario) {
         const descripcion = interpretarMensajeMetadatos(datos.toString());
-        iniciarRecepcion(conexion, descripcion);
-        conexion.send(crearMensajeRespuesta(true));
+        const transferId = generarIdUnico();
+        registrarSolicitud(transferId, conexion, descripcion);
+        ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("solicitud-transferencia", { transferId, descripcion });
         return;
       }
       recibirChunk(conexion, datos);
@@ -9841,6 +9852,21 @@ function iniciarServidorTransferencia() {
   servidorHttp.listen(PUERTO_TRANSFERENCIA);
   console.log(`Servidor de transferencia escuchando en el puerto ${PUERTO_TRANSFERENCIA}`);
 }
+function manejarRespuestaDeUsuario(transferId, aceptado) {
+  const solicitud = tomarSolicitud(transferId);
+  if (!solicitud) return;
+  solicitud.conexion.send(crearMensajeRespuesta(aceptado));
+  if (aceptado) {
+    iniciarRecepcion(solicitud.conexion, solicitud.descripcion, (bytesRecibidos, tamañoEsperado) => {
+      ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("progreso-transferencia", {
+        transferId,
+        nombreArchivo: solicitud.descripcion.nombre,
+        bytesRecibidos,
+        tamañoEsperado
+      });
+    });
+  }
+}
 function activarVisibilidad() {
   servicioPublicado = bonjour.publish({
     name: nombreDispositivo,
@@ -9848,12 +9874,8 @@ function activarVisibilidad() {
     port: PUERTO_TRANSFERENCIA,
     txt: { version: "1.0.0", id: idPropio }
   });
-  servicioPublicado.on("up", () => {
-    console.log(`Anunciado como "${nombreDispositivo}" en la red.`);
-  });
-  servicioPublicado.on("error", (error) => {
-    console.warn("Aviso Bonjour:", error.message);
-  });
+  servicioPublicado.on("up", () => console.log(`Anunciado como "${nombreDispositivo}" en la red.`));
+  servicioPublicado.on("error", (error) => console.warn("Aviso Bonjour:", error.message));
 }
 function desactivarVisibilidad() {
   servicioPublicado == null ? void 0 : servicioPublicado.stop(() => console.log("Dejamos de anunciarnos en la red."));
@@ -9888,7 +9910,10 @@ function publicarYBuscarDispositivos() {
   });
 }
 ipcMain.on("enviar-archivo", (_evento, datos) => {
-  enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino);
+  enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino, nombreDispositivo);
+});
+ipcMain.on("respuesta-transferencia", (_evento, datos) => {
+  manejarRespuestaDeUsuario(datos.transferId, datos.aceptado);
 });
 if (process.platform === "linux") {
   app.disableHardwareAcceleration();

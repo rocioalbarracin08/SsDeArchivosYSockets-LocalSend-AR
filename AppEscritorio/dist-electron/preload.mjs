@@ -10,5 +10,14 @@ electron.contextBridge.exposeInMainWorld("api", {
   },
   enviarArchivo: (rutaArchivo, ipDestino, puertoDestino) => electron.ipcRenderer.send("enviar-archivo", { rutaArchivo, ipDestino, puertoDestino }),
   obtenerRutaDeArchivo: (archivo) => electron.webUtils.getPathForFile(archivo),
-  cambiarVisibilidad: (visible) => electron.ipcRenderer.send("cambiar-visibilidad", visible)
+  cambiarVisibilidad: (visible) => electron.ipcRenderer.send("cambiar-visibilidad", visible),
+  // NUEVO: diálogo de aceptación
+  onSolicitudTransferencia: (callback) => {
+    electron.ipcRenderer.on("solicitud-transferencia", (_event, data) => callback(data));
+  },
+  responderTransferencia: (transferId, aceptado) => electron.ipcRenderer.send("respuesta-transferencia", { transferId, aceptado }),
+  // NUEVO: progreso en tiempo real
+  onProgresoTransferencia: (callback) => {
+    electron.ipcRenderer.on("progreso-transferencia", (_event, data) => callback(data));
+  }
 });

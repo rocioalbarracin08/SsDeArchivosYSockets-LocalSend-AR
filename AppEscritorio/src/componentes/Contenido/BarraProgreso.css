@@ -1,0 +1,50 @@
+.lista-progresos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tarjeta-progreso {
+  background: #121218;
+  border: 1px solid #2a2530;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.fila-info-progreso {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.nombre-archivo-progreso {
+  color: #f2ecef;
+  font-size: 14px;
+}
+
+.porcentaje-progreso {
+  color: #b08a9e;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.riel-progreso {
+  background: #1e1b1f;
+  border-radius: 6px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.relleno-progreso {
+  background: #9c7c8c;
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.peso-progreso {
+  display: block;
+  color: #8a8590;
+  font-size: 12px;
+  margin-top: 6px;
+}
