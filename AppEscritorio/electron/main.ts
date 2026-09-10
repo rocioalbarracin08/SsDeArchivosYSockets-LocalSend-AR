@@ -137,7 +137,8 @@ function publicarYBuscarDispositivos() {
 }
 
 ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; ipDestino: string; puertoDestino: number }) => {
-  enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino)
+  // Le pasamos nuestro propio nombre de dispositivo, así el receptor sabe quién le mandó esto.
+  enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino, nombreDispositivo)
 })
 
 if (process.platform === 'linux') {

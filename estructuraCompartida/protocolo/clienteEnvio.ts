@@ -8,14 +8,20 @@ import { crearMensajeMetadatos } from './formatoMensaje'
 import { dividirEnChunks } from '../utilidades/dividirEnChunks'
 import type { DescripcionArchivos } from '../tipos/DescripcionArchivos'
 
-export function enviarArchivoAPeer(rutaArchivo: string, ipDestino: string, puertoDestino: number) {
+export function enviarArchivoAPeer(
+  rutaArchivo: string,
+  ipDestino: string,
+  puertoDestino: number,
+  nombreRemitente: string // NUEVO: quién soy yo, para que el receptor lo sepa
+) {
   const nombreArchivo = path.basename(rutaArchivo)
   const tamañoArchivo = fs.statSync(rutaArchivo).size
 
   const descripcion: DescripcionArchivos = {
     nombre: nombreArchivo,
     tamaño: tamañoArchivo,
-    tipo: path.extname(rutaArchivo)
+    tipo: path.extname(rutaArchivo),
+    remitente: nombreRemitente
   }
 
   const socket = new WebSocket(`ws://${ipDestino}:${puertoDestino}${RUTA_WEBSOCKET}`)

@@ -1,6 +1,4 @@
 // Guarda el progreso de cada transferencia entrante, una entrada por conexión activa.
-// Ahora usamos directamente el objeto de conexión de "ws" como clave del Map
-// (ya no necesitamos ningún id ni ".raw" — cada conexión ya es única por sí sola).
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
@@ -12,6 +10,7 @@ interface EstadoTransferencia {
   tamañoEsperado: number
   bytesRecibidos: number
   nombreArchivo: string
+  nombreRemitente: string
 }
 
 const transferenciasActivas = new Map<WebSocket, EstadoTransferencia>()
@@ -23,8 +22,11 @@ export function iniciarRecepcion(conexion: WebSocket, descripcion: DescripcionAr
     streamEscritura: fs.createWriteStream(rutaDestino),
     tamañoEsperado: descripcion.tamaño,
     bytesRecibidos: 0,
-    nombreArchivo: descripcion.nombre
+    nombreArchivo: descripcion.nombre,
+    nombreRemitente: descripcion.remitente
   })
+
+  console.log(`Recibiendo "${descripcion.nombre}" de "${descripcion.remitente}"...`)
 }
 
 export function recibirChunk(conexion: WebSocket, chunk: Buffer): boolean {
@@ -37,7 +39,7 @@ export function recibirChunk(conexion: WebSocket, chunk: Buffer): boolean {
   const transferenciaCompleta = estado.bytesRecibidos >= estado.tamañoEsperado
   if (transferenciaCompleta) {
     estado.streamEscritura.end()
-    console.log(`Archivo "${estado.nombreArchivo}" completado.`)
+    console.log(`Archivo "${estado.nombreArchivo}" de "${estado.nombreRemitente}" completado.`)
     transferenciasActivas.delete(conexion)
   }
   return transferenciaCompleta
