@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createServer } from 'node:http'
+import { WebSocketServer } from 'ws'
 import { Bonjour } from 'bonjour-service'
-import { Elysia } from 'elysia'
-import { node } from '@elysiajs/node'
 
 import { PUERTO_TRANSFERENCIA, TIPO_SERVICIO_BONJOUR, RUTA_WEBSOCKET } from '../../estructuraCompartida/protocolo/constantes'
 import { interpretarMensajeMetadatos, crearMensajeRespuesta } from '../../estructuraCompartida/protocolo/formatoMensaje'
@@ -14,13 +14,21 @@ import { generarNombreDispositivo } from '../../estructuraCompartida/utilidades/
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Identidad de esta instancia: se generan una sola vez al arrancar la app.
 const idPropio = generarIdUnico()
 const nombreDispositivo = generarNombreDispositivo()
 
 let ventanaPrincipal: BrowserWindow | null = null
 let servicioPublicado: ReturnType<Bonjour['publish']> | null = null
 const bonjour = new Bonjour()
+
+// Guardamos acá todo lo que ya descubrimos, para poder reenviarlo al Renderer
+// cuando pida "buscar" de nuevo, sin tener que crear un buscador nuevo cada vez.
+interface DispositivoEncontrado {
+  name: string
+  addresses: string[]
+  port: number
+}
+const dispositivosConocidos = new Map<string, DispositivoEncontrado>()
 
 function crearVentana() {
   ventanaPrincipal = new BrowserWindow({
@@ -35,30 +43,35 @@ function crearVentana() {
   ventanaPrincipal.loadURL(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173')
 }
 
+// Servidor de transferencia: ahora con "ws" puro en vez de Elysia,
+// para tener control directo y confiable sobre datos de texto vs binarios.
 function iniciarServidorTransferencia() {
-  return new Elysia({ adapter: node() })
-    .ws(RUTA_WEBSOCKET, {
-      open() {
-        console.log('Peer conectado.')
-      },
-      message(conexion, mensaje) {
-        // Si es texto, son los metadatos del archivo (JSON).
-        if (typeof mensaje === 'string') {
-          const descripcion = interpretarMensajeMetadatos(mensaje)
-          iniciarRecepcion(conexion.raw, descripcion)
-          // Auto-acepta por ahora; el diálogo real de confirmación va después.
-          conexion.send(crearMensajeRespuesta(true))
-          return
-        }
+  const servidorHttp = createServer()
+  const servidorWs = new WebSocketServer({ server: servidorHttp, path: RUTA_WEBSOCKET })
 
-        // Si no es texto, es un chunk binario del archivo.
-        recibirChunk(conexion.raw, mensaje)
-      },
-      close(conexion) {
-        cancelarRecepcion(conexion.raw)
+  servidorWs.on('connection', (conexion) => {
+    console.log('Peer conectado.')
+
+    conexion.on('message', (datos, esBinario) => {
+      if (!esBinario) {
+        // Mensaje de texto: son los metadatos del archivo.
+        const descripcion = interpretarMensajeMetadatos(datos.toString())
+        iniciarRecepcion(conexion, descripcion)
+        conexion.send(crearMensajeRespuesta(true))
+        return
       }
+      // Mensaje binario: es un chunk del archivo. "ws" siempre entrega
+      // datos binarios como Buffer real, sin ambigüedad.
+      recibirChunk(conexion, datos as Buffer)
     })
-    .listen(PUERTO_TRANSFERENCIA)
+
+    conexion.on('close', () => {
+      cancelarRecepcion(conexion)
+    })
+  })
+
+  servidorHttp.listen(PUERTO_TRANSFERENCIA)
+  console.log(`Servidor de transferencia escuchando en el puerto ${PUERTO_TRANSFERENCIA}`)
 }
 
 function activarVisibilidad() {
@@ -79,6 +92,8 @@ function activarVisibilidad() {
 }
 
 function desactivarVisibilidad() {
+  // .stop() manda el "aviso de despedida" a la red, así los demás
+  // saben que ya no estamos disponibles y nos sacan de su lista.
   servicioPublicado?.stop(() => console.log('Dejamos de anunciarnos en la red.'))
   servicioPublicado = null
 }
@@ -86,17 +101,32 @@ function desactivarVisibilidad() {
 function publicarYBuscarDispositivos() {
   activarVisibilidad()
 
+  // Un solo buscador, creado una vez, escuchando durante toda la vida de la app.
+  const buscador = bonjour.find({ type: TIPO_SERVICIO_BONJOUR })
+
+  buscador.on('up', (servicioEncontrado) => {
+    if (servicioEncontrado.txt?.id === idPropio) return
+
+    const dispositivo: DispositivoEncontrado = {
+      name: servicioEncontrado.name,
+      addresses: servicioEncontrado.addresses ?? [],
+      port: servicioEncontrado.port
+    }
+    dispositivosConocidos.set(dispositivo.name, dispositivo)
+    ventanaPrincipal?.webContents.send('servicio-encontrado', dispositivo)
+  })
+
+  // NUEVO: cuando un dispositivo se apaga o deja de anunciarse, lo sacamos
+  // de nuestra lista y avisamos al Renderer para que también lo saque.
+  buscador.on('down', (servicioPerdido) => {
+    dispositivosConocidos.delete(servicioPerdido.name)
+    ventanaPrincipal?.webContents.send('servicio-perdido', { name: servicioPerdido.name })
+  })
+
   ipcMain.on('buscar-servicios', () => {
-    const buscador = bonjour.find({ type: TIPO_SERVICIO_BONJOUR })
-
-    buscador.on('up', (servicioEncontrado) => {
-      if (servicioEncontrado.txt?.id === idPropio) return
-
-      ventanaPrincipal?.webContents.send('servicio-encontrado', {
-        name: servicioEncontrado.name,
-        addresses: servicioEncontrado.addresses,
-        port: servicioEncontrado.port
-      })
+    // Reenviamos todo lo que ya sabemos hasta ahora (el buscador nunca se detuvo).
+    dispositivosConocidos.forEach((dispositivo) => {
+      ventanaPrincipal?.webContents.send('servicio-encontrado', dispositivo)
     })
   })
 

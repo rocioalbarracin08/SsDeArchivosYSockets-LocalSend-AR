@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('servicio-encontrado', (_event, data) => callback(data))
   },
 
+  onDispositivoPerdido: (callback: (data: { name: string }) => void) => {
+    ipcRenderer.on('servicio-perdido', (_event, data) => callback(data))
+  },
+
   enviarArchivo: (rutaArchivo: string, ipDestino: string, puertoDestino: number) =>
     ipcRenderer.send('enviar-archivo', { rutaArchivo, ipDestino, puertoDestino }),
 

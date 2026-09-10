@@ -25,6 +25,10 @@ function App() {
         return yaExiste ? previos : [...previos, data]
       })
     })
+
+    window.api.onDispositivoPerdido((data: { name: string }) => {
+      setDispositivos((previos) => previos.filter((d) => d.name !== data.name))
+    })
   }, [])
 
   function agregarArchivos(lista: FileList) {

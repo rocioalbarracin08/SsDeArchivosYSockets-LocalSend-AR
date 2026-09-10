@@ -1,29 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import electron from 'vite-plugin-electron'
+import electron from 'vite-plugin-electron/simple'
 
 export default defineConfig({
   plugins: [
     react(),
-    electron([
-      {
-        // Proceso principal (Bonjour, Elysia, todo lo que armamos en main.ts)
+    electron({
+      main: {
         entry: 'electron/main.ts',
         vite: {
           build: {
             rollupOptions: {
-              // "ws" intenta usar estos dos paquetes acelerantes si existen,
-              // pero son opcionales — le decimos a Rollup que no los empaquete,
-              // así "ws" sigue andando con su respaldo en JavaScript puro.
               external: ['bufferutil', 'utf-8-validate']
             }
           }
         }
       },
-      {
-        // El puente entre Main y Renderer
-        entry: 'electron/preload.ts'
+      preload: {
+        input: 'electron/preload.ts'
+        // El sub-paquete "/simple" ya se encarga de compilar esto
+        // a CommonJS automáticamente — no hace falta forzar nada más acá.
       }
-    ])
+    })
   ]
 })

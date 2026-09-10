@@ -1,9 +1,10 @@
 // Guarda el progreso de cada transferencia entrante, una entrada por conexión activa.
-// Usamos el socket crudo como clave (no un id de texto), porque es único
-// por naturaleza para cada conexión, sin depender de que el framework nos dé un id.
+// Ahora usamos directamente el objeto de conexión de "ws" como clave del Map
+// (ya no necesitamos ningún id ni ".raw" — cada conexión ya es única por sí sola).
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
+import type { WebSocket } from 'ws'
 import type { DescripcionArchivos } from '../tipos/DescripcionArchivos'
 
 interface EstadoTransferencia {
@@ -13,12 +14,12 @@ interface EstadoTransferencia {
   nombreArchivo: string
 }
 
-const transferenciasActivas = new Map<object, EstadoTransferencia>()
+const transferenciasActivas = new Map<WebSocket, EstadoTransferencia>()
 
-export function iniciarRecepcion(conexionCruda: object, descripcion: DescripcionArchivos) {
+export function iniciarRecepcion(conexion: WebSocket, descripcion: DescripcionArchivos) {
   const rutaDestino = path.join(app.getPath('downloads'), descripcion.nombre)
 
-  transferenciasActivas.set(conexionCruda, {
+  transferenciasActivas.set(conexion, {
     streamEscritura: fs.createWriteStream(rutaDestino),
     tamañoEsperado: descripcion.tamaño,
     bytesRecibidos: 0,
@@ -26,35 +27,26 @@ export function iniciarRecepcion(conexionCruda: object, descripcion: Descripcion
   })
 }
 
-// Convierte cualquier formato binario que llegue (Buffer, ArrayBuffer, Uint8Array)
-// a un Buffer real de Node — así el archivo se escribe con los bytes correctos,
-// sin importar en qué formato exacto nos lo haya entregado el WebSocket por dentro.
-function normalizarAChunkBinario(mensaje: unknown): Buffer {
-  if (Buffer.isBuffer(mensaje)) return mensaje
-  return Buffer.from(mensaje as ArrayBuffer)
-}
-
-export function recibirChunk(conexionCruda: object, mensaje: unknown): boolean {
-  const estado = transferenciasActivas.get(conexionCruda)
+export function recibirChunk(conexion: WebSocket, chunk: Buffer): boolean {
+  const estado = transferenciasActivas.get(conexion)
   if (!estado) return false
 
-  const chunkBinario = normalizarAChunkBinario(mensaje)
-  estado.streamEscritura.write(chunkBinario)
-  estado.bytesRecibidos += chunkBinario.length
+  estado.streamEscritura.write(chunk)
+  estado.bytesRecibidos += chunk.length
 
   const transferenciaCompleta = estado.bytesRecibidos >= estado.tamañoEsperado
   if (transferenciaCompleta) {
     estado.streamEscritura.end()
     console.log(`Archivo "${estado.nombreArchivo}" completado.`)
-    transferenciasActivas.delete(conexionCruda)
+    transferenciasActivas.delete(conexion)
   }
   return transferenciaCompleta
 }
 
-export function cancelarRecepcion(conexionCruda: object) {
-  const estado = transferenciasActivas.get(conexionCruda)
+export function cancelarRecepcion(conexion: WebSocket) {
+  const estado = transferenciasActivas.get(conexion)
   if (estado) {
     estado.streamEscritura.end()
-    transferenciasActivas.delete(conexionCruda)
+    transferenciasActivas.delete(conexion)
   }
 }
