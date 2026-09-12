@@ -1,0 +1,38 @@
+.fila-visibilidad {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.led-estado {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a4550;
+}
+
+.led-activo {
+  background: var(--acento-mauve-claro);
+  box-shadow: 0 0 8px var(--acento-mauve);
+}
+
+.texto-estado-visibilidad {
+  flex: 1;
+  color: var(--texto-secundario);
+  font-size: 14px;
+  margin: 0;
+}
+
+.boton-toggle-visibilidad {
+  background: var(--fondo-elemento);
+  color: var(--texto-principal);
+  border: 1px solid var(--borde-sutil);
+  border-radius: var(--radio-borde);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.boton-toggle-visibilidad:hover {
+  border-color: var(--acento-mauve);
+}

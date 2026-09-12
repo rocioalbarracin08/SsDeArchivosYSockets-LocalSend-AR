@@ -1,0 +1,31 @@
+.boton-actualizar-lista {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--fondo-elemento);
+  color: var(--texto-principal);
+  border: 1px solid var(--borde-sutil);
+  border-radius: var(--radio-borde);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.boton-actualizar-lista:hover {
+  border-color: var(--acento-mauve);
+}
+
+.icono-actualizar {
+  display: inline-block;
+  color: var(--acento-mauve-claro);
+  transition: transform 0.2s ease;
+}
+
+.icono-girando {
+  animation: girar 0.6s linear;
+}
+
+@keyframes girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

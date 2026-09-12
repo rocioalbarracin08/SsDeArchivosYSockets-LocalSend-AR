@@ -1,0 +1,15 @@
+.seccion {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde-sutil);
+  border-radius: var(--radio-borde);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.seccion h2 {
+  font-size: 15px;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 14px;
+}

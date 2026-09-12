@@ -1,0 +1,31 @@
+.lista-archivos-elegidos {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-archivo-elegido {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--fondo-tarjeta);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--texto-principal);
+}
+
+.boton-quitar-archivo {
+  background: none;
+  border: none;
+  color: var(--texto-secundario);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.boton-quitar-archivo:hover {
+  color: var(--acento-mauve-claro);
+}

@@ -1,0 +1,14 @@
+.boton-enviar-a {
+  background: var(--acento-mauve);
+  color: var(--fondo-app);
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.boton-enviar-a:hover {
+  opacity: 0.9;
+}
