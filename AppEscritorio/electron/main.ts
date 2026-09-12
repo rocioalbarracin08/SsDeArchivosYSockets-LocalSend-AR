@@ -175,11 +175,14 @@ function publicarYBuscarDispositivos() {
   })
 }
 
-ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; direcciones: string[]; puertoDestino: number }) => {
+ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; direcciones: string[]; puertoDestino: number; nombreDispositivoDestino: string }) => {
   const ipElegida = elegirDireccionIP(datos.direcciones)
-  enviarArchivoAPeer(datos.rutaArchivo, ipElegida, datos.puertoDestino, nombreDispositivo)
+  enviarArchivoAPeer(datos.rutaArchivo, ipElegida, datos.puertoDestino, nombreDispositivo, () => {
+    // Sacamos al dispositivo de nuestra lista conocida y avisamos al Renderer.
+    dispositivosConocidos.delete(datos.nombreDispositivoDestino)
+    ventanaPrincipal?.webContents.send('servicio-perdido', { name: datos.nombreDispositivoDestino })
+  })
 })
-
 // NUEVO: escucha la decisión del usuario desde el diálogo de React.
 ipcMain.on('respuesta-transferencia', (_evento, datos: { transferId: string; aceptado: boolean }) => {
   manejarRespuestaDeUsuario(datos.transferId, datos.aceptado)
@@ -195,14 +198,23 @@ app.whenReady().then(() => {
   publicarYBuscarDispositivos()
 })
 
-app.on('window-all-closed', () => {
-  bonjour.destroy()
-  if (process.platform !== 'darwin') app.quit()
-})
-// Aseguramos el aviso de despedida de Bonjour incluso si el proceso se corta de forma abrupta (Ctrl+C, crash de Vite, etc.), no solo cuando se cierra la ventana normalmente.
-function despedirseYSalir() {
-  bonjour.destroy()
-  process.exit(0)
+function cerrarProlijamente(salir: () => void) {
+  if (servicioPublicado) {
+    servicioPublicado.stop(() => {
+      bonjour.destroy()
+      salir()
+    })
+  } else {
+    bonjour.destroy()
+    salir()
+  }
 }
-process.on('SIGINT', despedirseYSalir)
-process.on('SIGTERM', despedirseYSalir)
+
+app.on('window-all-closed', () => {
+  cerrarProlijamente(() => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+})
+
+process.on('SIGINT', () => cerrarProlijamente(() => process.exit(0)))
+process.on('SIGTERM', () => cerrarProlijamente(() => process.exit(0)))

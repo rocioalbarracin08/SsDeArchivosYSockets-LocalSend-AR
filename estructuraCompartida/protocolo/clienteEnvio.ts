@@ -12,7 +12,8 @@ export function enviarArchivoAPeer(
   rutaArchivo: string,
   ipDestino: string,
   puertoDestino: number,
-  nombreRemitente: string // NUEVO: quién soy yo, para que el receptor lo sepa
+  nombreRemitente: string,
+  onFalloConexion?: () => void // NUEVO: se llama si no se pudo conectar
 ) {
   const nombreArchivo = path.basename(rutaArchivo)
   const tamañoArchivo = fs.statSync(rutaArchivo).size
@@ -32,7 +33,6 @@ export function enviarArchivoAPeer(
 
   socket.on('message', async (mensajeRespuesta: WebSocket.RawData) => {
     const respuesta = JSON.parse(mensajeRespuesta.toString())
-
     if (respuesta.tipo === 'respuesta' && respuesta.aceptado) {
       for await (const chunk of dividirEnChunks(rutaArchivo)) {
         socket.send(chunk)
@@ -46,5 +46,6 @@ export function enviarArchivoAPeer(
 
   socket.on('error', (error: Error) => {
     console.error('Error en el envío:', error.message)
+    onFalloConexion?.() // avisamos hacia afuera que este dispositivo ya no responde
   })
 }

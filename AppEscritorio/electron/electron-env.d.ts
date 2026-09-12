@@ -3,7 +3,7 @@ interface Window {
     buscarDispositivos: () => void
     onDispositivoEncontrado: (callback: (data: any) => void) => void
     onDispositivoPerdido: (callback: (data: { name: string }) => void) => void
-    enviarArchivo: (rutaArchivo: string, direcciones: string[], puertoDestino: number) => void
+    enviarArchivo: (rutaArchivo: string, direcciones: string[], puertoDestino: number, nombreDispositivoDestino: string) => void
     obtenerRutaDeArchivo: (archivo: File) => string
     cambiarVisibilidad: (visible: boolean) => void
     onSolicitudTransferencia: (callback: (data: any) => void) => void
