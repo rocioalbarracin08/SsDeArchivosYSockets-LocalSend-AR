@@ -1,0 +1,39 @@
+.lista-resumen-envios {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-resumen-envio {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--fondo-tarjeta);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.nombre-archivo-envio {
+  color: var(--texto-principal);
+  font-weight: 600;
+}
+
+.destino-envio {
+  color: var(--texto-secundario);
+}
+
+.estado-texto-envio {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.estado-completado .estado-texto-envio { color: #7fbf8f; }
+.estado-rechazado .estado-texto-envio,
+.estado-error .estado-texto-envio { color: #c97a7a; }
+.estado-esperando .estado-texto-envio,
+.estado-aceptado .estado-texto-envio,
+.estado-enviando .estado-texto-envio { color: var(--acento-mauve-claro); }

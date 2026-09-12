@@ -1,5 +1,3 @@
-// Cliente WebSocket: inicia la conexión HACIA otro dispositivo para
-// negociar y mandarle un archivo. Es la contraparte del servidor de main.ts.
 import WebSocket from 'ws'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -8,12 +6,15 @@ import { crearMensajeMetadatos } from './formatoMensaje'
 import { dividirEnChunks } from '../utilidades/dividirEnChunks'
 import type { DescripcionArchivos } from '../tipos/DescripcionArchivos'
 
+export type EstadoEnvio = 'esperando' | 'aceptado' | 'rechazado' | 'completado' | 'error'
+
 export function enviarArchivoAPeer(
   rutaArchivo: string,
   ipDestino: string,
   puertoDestino: number,
   nombreRemitente: string,
-  onFalloConexion?: () => void // NUEVO: se llama si no se pudo conectar
+  onCambioEstado: (estado: EstadoEnvio) => void, // NUEVO: avisa cada paso del envío
+  onFalloConexion?: () => void
 ) {
   const nombreArchivo = path.basename(rutaArchivo)
   const tamañoArchivo = fs.statSync(rutaArchivo).size
@@ -28,24 +29,29 @@ export function enviarArchivoAPeer(
   const socket = new WebSocket(`ws://${ipDestino}:${puertoDestino}${RUTA_WEBSOCKET}`)
 
   socket.on('open', () => {
+    onCambioEstado('esperando')
     socket.send(crearMensajeMetadatos(descripcion))
   })
 
   socket.on('message', async (mensajeRespuesta: WebSocket.RawData) => {
     const respuesta = JSON.parse(mensajeRespuesta.toString())
+
     if (respuesta.tipo === 'respuesta' && respuesta.aceptado) {
+      onCambioEstado('aceptado')
       for await (const chunk of dividirEnChunks(rutaArchivo)) {
         socket.send(chunk)
       }
       socket.close()
+      onCambioEstado('completado')
     } else {
-      console.warn('El destino rechazó la transferencia.')
+      onCambioEstado('rechazado')
       socket.close()
     }
   })
 
   socket.on('error', (error: Error) => {
     console.error('Error en el envío:', error.message)
-    onFalloConexion?.() // avisamos hacia afuera que este dispositivo ya no responde
+    onCambioEstado('error')
+    onFalloConexion?.()
   })
 }

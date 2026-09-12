@@ -30,8 +30,21 @@ export function useTransferencias() {
   }, [])
 
   useEffect(() => {
-    window.api.onProgresoTransferencia((data: ProgresoTransferencia) => {
-      setProgresos((previos) => ({ ...previos, [data.transferId]: data }))
+  window.api.onProgresoTransferencia((data: ProgresoTransferencia) => {
+    setProgresos((previos) => ({ ...previos, [data.transferId]: data }))
+
+    const completado = data.bytesRecibidos >= data.tamañoEsperado
+    if (completado) {
+      // Esperamos un momento (para que se vea el 100% un instante),
+      // y recién ahí la sacamos del estado — el CSS se encarga de la salida suave.
+      setTimeout(() => {
+        setProgresos((previos) => {
+          const copia = { ...previos }
+          delete copia[data.transferId]
+          return copia
+        })
+      }, 1200)
+      }
     })
   }, [])
 

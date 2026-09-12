@@ -175,14 +175,30 @@ function publicarYBuscarDispositivos() {
   })
 }
 
-ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; direcciones: string[]; puertoDestino: number; nombreDispositivoDestino: string }) => {
+ipcMain.on('enviar-archivo', (_evento, datos: {
+  envioId: string
+  rutaArchivo: string
+  direcciones: string[]
+  puertoDestino: number
+  nombreDispositivoDestino: string
+}) => {
   const ipElegida = elegirDireccionIP(datos.direcciones)
-  enviarArchivoAPeer(datos.rutaArchivo, ipElegida, datos.puertoDestino, nombreDispositivo, () => {
-    // Sacamos al dispositivo de nuestra lista conocida y avisamos al Renderer.
-    dispositivosConocidos.delete(datos.nombreDispositivoDestino)
-    ventanaPrincipal?.webContents.send('servicio-perdido', { name: datos.nombreDispositivoDestino })
-  })
+
+  enviarArchivoAPeer(
+    datos.rutaArchivo,
+    ipElegida,
+    datos.puertoDestino,
+    nombreDispositivo,
+    (estado) => {
+      ventanaPrincipal?.webContents.send('estado-envio', { envioId: datos.envioId, estado })
+    },
+    () => {
+      dispositivosConocidos.delete(datos.nombreDispositivoDestino)
+      ventanaPrincipal?.webContents.send('servicio-perdido', { name: datos.nombreDispositivoDestino })
+    }
+  )
 })
+
 // NUEVO: escucha la decisión del usuario desde el diálogo de React.
 ipcMain.on('respuesta-transferencia', (_evento, datos: { transferId: string; aceptado: boolean }) => {
   manejarRespuestaDeUsuario(datos.transferId, datos.aceptado)

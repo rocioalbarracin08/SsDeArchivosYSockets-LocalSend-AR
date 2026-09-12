@@ -8,19 +8,30 @@ export interface Dispositivo {
 
 export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
+  const [huboCambioReciente, setHuboCambioReciente] = useState(false)
+
+  function marcarCambio() {
+    setHuboCambioReciente(true)
+    setTimeout(() => setHuboCambioReciente(false), 800)
+  }
 
   useEffect(() => {
     window.api.onDispositivoEncontrado((data: Dispositivo) => {
       setDispositivos((previos) => {
         const yaExiste = previos.some((d) => d.name === data.name)
-        return yaExiste ? previos : [...previos, data]
+        if (yaExiste) return previos
+        marcarCambio()
+        return [...previos, data]
       })
     })
   }, [])
 
   useEffect(() => {
     window.api.onDispositivoPerdido((data: { name: string }) => {
-      setDispositivos((previos) => previos.filter((d) => d.name !== data.name))
+      setDispositivos((previos) => {
+        marcarCambio()
+        return previos.filter((d) => d.name !== data.name)
+      })
     })
   }, [])
 
@@ -28,5 +39,5 @@ export function useDispositivos() {
     window.api.buscarDispositivos()
   }
 
-  return { dispositivos, actualizarLista }
+  return { dispositivos, actualizarLista, huboCambioReciente }
 }

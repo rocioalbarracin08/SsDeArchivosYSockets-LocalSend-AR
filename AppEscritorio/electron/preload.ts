@@ -11,9 +11,12 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('servicio-perdido', (_event, data) => callback(data))
   },
 
-  enviarArchivo: (rutaArchivo: string, direcciones: string[], puertoDestino: number, nombreDispositivoDestino: string) =>
-    ipcRenderer.send('enviar-archivo', { rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino }),
-  
+  enviarArchivo: (envioId: string, rutaArchivo: string, direcciones: string[], puertoDestino: number, nombreDispositivoDestino: string) =>
+  ipcRenderer.send('enviar-archivo', { envioId, rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino }),
+
+  onEstadoEnvio: (callback: (data: { envioId: string; estado: string }) => void) => {
+    ipcRenderer.on('estado-envio', (_event, data) => callback(data))
+  },
   obtenerRutaDeArchivo: (archivo: File) => webUtils.getPathForFile(archivo),
 
   cambiarVisibilidad: (visible: boolean) => ipcRenderer.send('cambiar-visibilidad', visible),
