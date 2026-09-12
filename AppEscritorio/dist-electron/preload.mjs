@@ -8,7 +8,7 @@ electron.contextBridge.exposeInMainWorld("api", {
   onDispositivoPerdido: (callback) => {
     electron.ipcRenderer.on("servicio-perdido", (_event, data) => callback(data));
   },
-  enviarArchivo: (rutaArchivo, ipDestino, puertoDestino) => electron.ipcRenderer.send("enviar-archivo", { rutaArchivo, ipDestino, puertoDestino }),
+  enviarArchivo: (rutaArchivo, direcciones, puertoDestino) => electron.ipcRenderer.send("enviar-archivo", { rutaArchivo, direcciones, puertoDestino }),
   obtenerRutaDeArchivo: (archivo) => electron.webUtils.getPathForFile(archivo),
   cambiarVisibilidad: (visible) => electron.ipcRenderer.send("cambiar-visibilidad", visible),
   // NUEVO: diálogo de aceptación

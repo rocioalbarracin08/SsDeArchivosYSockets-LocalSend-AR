@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, Notification, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
@@ -31,6 +31,25 @@ interface DispositivoEncontrado {
 }
 const dispositivosConocidos = new Map<string, DispositivoEncontrado>()
 
+// NUEVO: notificación nativa del sistema operativo, para cuando la ventana
+// no está al frente. Al hacer click, trae la ventana de vuelta y la enfoca.
+function mostrarNotificacionNativa() {
+  const notificacion = new Notification({
+    title: 'LocalSend',
+    body: 'Te llegó una solicitud en la AppWeb, no olvides revisarla...',
+    icon: path.join(__dirname, '../public/icono-notificacion.png')
+  })
+
+  notificacion.on('click', () => {
+    if (ventanaPrincipal) {
+      if (ventanaPrincipal.isMinimized()) ventanaPrincipal.restore()
+      ventanaPrincipal.focus()
+    }
+  })
+
+  notificacion.show()
+}
+
 function crearVentana() {
   ventanaPrincipal = new BrowserWindow({
     width: 900,
@@ -50,16 +69,29 @@ function iniciarServidorTransferencia() {
 
   servidorWs.on('connection', (conexion) => {
     conexion.on('message', (datos, esBinario) => {
-      if (!esBinario) {
-        // Llegaron los metadatos: en vez de aceptar solo, le preguntamos al usuario.
-        const descripcion = interpretarMensajeMetadatos(datos.toString())
-        const transferId = generarIdUnico()
+    if (!esBinario) {
+      const descripcion = interpretarMensajeMetadatos(datos.toString())
+      const transferId = generarIdUnico()
 
-        registrarSolicitud(transferId, conexion, descripcion)
-        ventanaPrincipal?.webContents.send('solicitud-transferencia', { transferId, descripcion })
-        return
+      registrarSolicitud(transferId, conexion, descripcion)
+      ventanaPrincipal?.webContents.send('solicitud-transferencia', { transferId, descripcion })
+
+      // NUEVO: si la ventana no está al frente, avisamos con una notificación nativa.
+      if (ventanaPrincipal && !ventanaPrincipal.isFocused()) {
+        const notificacion = new Notification({
+          title: 'LocalSend',
+          body: 'Te llegó una solicitud en la AppWeb, no olvides revisarla...'
+        })
+
+        notificacion.on('click', () => {
+          ventanaPrincipal?.show()
+          ventanaPrincipal?.focus()
+        })
+
+        notificacion.show()
       }
-
+      return
+    }
       // Chunk binario: solo se procesa si ya existe una recepción iniciada
       // (o sea, si el usuario ya aceptó antes).
       recibirChunk(conexion, datos as Buffer)
@@ -167,3 +199,10 @@ app.on('window-all-closed', () => {
   bonjour.destroy()
   if (process.platform !== 'darwin') app.quit()
 })
+// Aseguramos el aviso de despedida de Bonjour incluso si el proceso se corta de forma abrupta (Ctrl+C, crash de Vite, etc.), no solo cuando se cierra la ventana normalmente.
+function despedirseYSalir() {
+  bonjour.destroy()
+  process.exit(0)
+}
+process.on('SIGINT', despedirseYSalir)
+process.on('SIGTERM', despedirseYSalir)
