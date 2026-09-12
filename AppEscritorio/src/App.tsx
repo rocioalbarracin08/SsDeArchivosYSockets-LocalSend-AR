@@ -100,7 +100,7 @@ function App() {
       return
     }
     archivosElegidos.forEach((archivo) => {
-      window.api.enviarArchivo(archivo.ruta, dispositivo.addresses[0], dispositivo.port)
+      window.api.enviarArchivo(archivo.ruta, dispositivo.addresses, dispositivo.port)
     })
   }
 
@@ -191,4 +191,4 @@ function App() {
   )
 }
 
-export default App
+export default App  

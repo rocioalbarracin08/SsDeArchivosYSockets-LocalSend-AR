@@ -12,6 +12,8 @@ import { iniciarRecepcion, recibirChunk, cancelarRecepcion } from '../../estruct
 import { registrarSolicitud, tomarSolicitud } from '../../estructuraCompartida/protocolo/solicitudesPendientes'
 import { generarIdUnico } from '../../estructuraCompartida/utilidades/generarIdUnico'
 import { generarNombreDispositivo } from '../../estructuraCompartida/utilidades/generarNombreDispositivo'
+import { elegirDireccionIP } from '../../estructuraCompartida/utilidades/elegirDireccionIP'
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -141,8 +143,9 @@ function publicarYBuscarDispositivos() {
   })
 }
 
-ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; ipDestino: string; puertoDestino: number }) => {
-  enviarArchivoAPeer(datos.rutaArchivo, datos.ipDestino, datos.puertoDestino, nombreDispositivo)
+ipcMain.on('enviar-archivo', (_evento, datos: { rutaArchivo: string; direcciones: string[]; puertoDestino: number }) => {
+  const ipElegida = elegirDireccionIP(datos.direcciones)
+  enviarArchivoAPeer(datos.rutaArchivo, ipElegida, datos.puertoDestino, nombreDispositivo)
 })
 
 // NUEVO: escucha la decisión del usuario desde el diálogo de React.
