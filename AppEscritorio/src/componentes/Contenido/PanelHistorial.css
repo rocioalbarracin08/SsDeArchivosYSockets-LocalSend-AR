@@ -70,3 +70,58 @@
   padding-bottom: 8px;
   border-bottom: 1px solid var(--borde-sutil);
 }
+.fila-seleccionar-todos,
+.item-historial {
+  position: relative; /* para ubicar el input oculto sobre la casilla */
+}
+
+.checkbox-oculto {
+  position: absolute;
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.casilla-personalizada {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 2px solid var(--borde-sutil);
+  background: var(--fondo-elemento);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox-oculto:checked + .casilla-personalizada {
+  background: var(--acento-mauve);
+  border-color: var(--acento-mauve);
+}
+
+.casilla-personalizada::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--fondo-app);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.15s ease;
+}
+
+.checkbox-oculto:checked + .casilla-personalizada::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.checkbox-oculto:hover + .casilla-personalizada {
+  border-color: var(--acento-mauve);
+}
+
+.checkbox-oculto:focus-visible + .casilla-personalizada {
+  outline: 2px solid var(--acento-mauve-claro);
+  outline-offset: 2px;
+}

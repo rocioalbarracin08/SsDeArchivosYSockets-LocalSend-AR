@@ -53,9 +53,11 @@ function PanelHistorial({ items, onEliminar }: Props) {
           <label className="fila-seleccionar-todos">
             <input
               type="checkbox"
+              className="checkbox-oculto"
               checked={todosSeleccionados}
               onChange={alternarSeleccionTotal}
             />
+            <span className="casilla-personalizada" aria-hidden="true"></span>
             {todosSeleccionados ? 'Deseleccionar todos' : 'Seleccionar todos'}
           </label>
 
@@ -64,9 +66,11 @@ function PanelHistorial({ items, onEliminar }: Props) {
               <li key={item.id} className="item-historial">
                 <input
                   type="checkbox"
+                  className="checkbox-oculto"
                   checked={seleccionados.has(item.id)}
                   onChange={() => alternarSeleccion(item.id)}
                 />
+                <span className="casilla-personalizada" aria-hidden="true"></span>
                 <span className="etiqueta-historial">{item.etiqueta}</span>
                 <span className="estado-historial">{item.estadoTexto}</span>
               </li>
