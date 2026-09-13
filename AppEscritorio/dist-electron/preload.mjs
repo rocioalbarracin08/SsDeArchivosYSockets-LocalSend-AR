@@ -8,7 +8,10 @@ electron.contextBridge.exposeInMainWorld("api", {
   onDispositivoPerdido: (callback) => {
     electron.ipcRenderer.on("servicio-perdido", (_event, data) => callback(data));
   },
-  enviarArchivo: (rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino) => electron.ipcRenderer.send("enviar-archivo", { rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino }),
+  enviarArchivo: (envioId, rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino) => electron.ipcRenderer.send("enviar-archivo", { envioId, rutaArchivo, direcciones, puertoDestino, nombreDispositivoDestino }),
+  onEstadoEnvio: (callback) => {
+    electron.ipcRenderer.on("estado-envio", (_event, data) => callback(data));
+  },
   obtenerRutaDeArchivo: (archivo) => electron.webUtils.getPathForFile(archivo),
   cambiarVisibilidad: (visible) => electron.ipcRenderer.send("cambiar-visibilidad", visible),
   // NUEVO: diálogo de aceptación

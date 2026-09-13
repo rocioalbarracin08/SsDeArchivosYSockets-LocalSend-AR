@@ -9733,7 +9733,7 @@ async function* dividirEnChunks(rutaArchivo) {
     yield pedazo;
   }
 }
-function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino, nombreRemitente, onFalloConexion) {
+function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino, nombreRemitente, onCambioEstado, onFalloConexion) {
   const nombreArchivo = path.basename(rutaArchivo);
   const tamañoArchivo = fs.statSync(rutaArchivo).size;
   const descripcion = {
@@ -9742,24 +9742,36 @@ function enviarArchivoAPeer(rutaArchivo, ipDestino, puertoDestino, nombreRemiten
     tipo: path.extname(rutaArchivo),
     remitente: nombreRemitente
   };
+  const TIEMPO_LIMITE_RESPUESTA_MS = 55e3;
   const socket = new WebSocket$1(`ws://${ipDestino}:${puertoDestino}${RUTA_WEBSOCKET}`);
+  const timeoutRespuesta = setTimeout(() => {
+    console.warn("El destino no respondió a tiempo.");
+    onCambioEstado("error");
+    socket.terminate();
+  }, TIEMPO_LIMITE_RESPUESTA_MS);
   socket.on("open", () => {
+    onCambioEstado("esperando");
     socket.send(crearMensajeMetadatos(descripcion));
   });
   socket.on("message", async (mensajeRespuesta) => {
+    clearTimeout(timeoutRespuesta);
     const respuesta = JSON.parse(mensajeRespuesta.toString());
     if (respuesta.tipo === "respuesta" && respuesta.aceptado) {
+      onCambioEstado("aceptado");
       for await (const chunk of dividirEnChunks(rutaArchivo)) {
         socket.send(chunk);
       }
       socket.close();
+      onCambioEstado("completado");
     } else {
-      console.warn("El destino rechazó la transferencia.");
+      onCambioEstado("rechazado");
       socket.close();
     }
   });
   socket.on("error", (error) => {
+    clearTimeout(timeoutRespuesta);
     console.error("Error en el envío:", error.message);
+    onCambioEstado("error");
     onFalloConexion == null ? void 0 : onFalloConexion();
   });
 }
@@ -9878,6 +9890,8 @@ function manejarRespuestaDeUsuario(transferId, aceptado) {
       ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("progreso-transferencia", {
         transferId,
         nombreArchivo: solicitud.descripcion.nombre,
+        remitente: solicitud.descripcion.remitente,
+        // NUEVO
         bytesRecibidos,
         tamañoEsperado
       });
@@ -9928,10 +9942,19 @@ function publicarYBuscarDispositivos() {
 }
 ipcMain.on("enviar-archivo", (_evento, datos) => {
   const ipElegida = elegirDireccionIP(datos.direcciones);
-  enviarArchivoAPeer(datos.rutaArchivo, ipElegida, datos.puertoDestino, nombreDispositivo, () => {
-    dispositivosConocidos.delete(datos.nombreDispositivoDestino);
-    ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("servicio-perdido", { name: datos.nombreDispositivoDestino });
-  });
+  enviarArchivoAPeer(
+    datos.rutaArchivo,
+    ipElegida,
+    datos.puertoDestino,
+    nombreDispositivo,
+    (estado) => {
+      ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("estado-envio", { envioId: datos.envioId, estado });
+    },
+    () => {
+      dispositivosConocidos.delete(datos.nombreDispositivoDestino);
+      ventanaPrincipal == null ? void 0 : ventanaPrincipal.webContents.send("servicio-perdido", { name: datos.nombreDispositivoDestino });
+    }
+  );
 });
 ipcMain.on("respuesta-transferencia", (_evento, datos) => {
   manejarRespuestaDeUsuario(datos.transferId, datos.aceptado);

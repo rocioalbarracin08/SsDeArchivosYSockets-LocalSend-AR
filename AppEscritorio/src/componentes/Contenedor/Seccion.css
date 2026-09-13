@@ -8,3 +8,21 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+.boton-enviar-seleccionados {
+  margin-top: 12px;
+  background: var(--acento-mauve);
+  color: var(--fondo-app);
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radio-borde);
+  padding: 10px 16px;
+  cursor: pointer;
+  width: 100%;
+}
+.seccion {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde-sutil);
+  border-radius: var(--radio-borde);
+  padding: 20px;
+  margin-bottom: 20px; 
+}

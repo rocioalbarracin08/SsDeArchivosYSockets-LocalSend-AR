@@ -29,3 +29,24 @@ h1, h2, h3 {
 button {
   font-family: inherit;
 }
+.titulo-app {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin-bottom: 20px;
+}
+
+.subtitulo-seccion {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--acento-mauve-claro);
+  margin-bottom: 12px;
+}
+
+.texto-estado-seccion {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--texto-secundario);
+}

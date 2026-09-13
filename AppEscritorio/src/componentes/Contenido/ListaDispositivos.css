@@ -34,3 +34,10 @@
   color: var(--texto-secundario);
   font-size: 12px;
 }
+.etiqueta-checkbox-dispositivo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  width: 100%;
+}

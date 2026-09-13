@@ -1,4 +1,3 @@
-import BotonEnviarA from '../Controlador/BotonEnviarA'
 import './ListaDispositivos.css'
 
 interface Dispositivo {
@@ -9,10 +8,11 @@ interface Dispositivo {
 
 interface Props {
   dispositivos: Dispositivo[]
-  onEnviar: (dispositivo: Dispositivo) => void
+  seleccionados: Set<string>
+  onToggleSeleccion: (nombre: string) => void
 }
 
-function ListaDispositivos({ dispositivos, onEnviar }: Props) {
+function ListaDispositivos({ dispositivos, seleccionados, onToggleSeleccion }: Props) {
   if (dispositivos.length === 0) {
     return <p className="texto-sin-dispositivos">Ningún dispositivo encontrado todavía.</p>
   }
@@ -21,11 +21,17 @@ function ListaDispositivos({ dispositivos, onEnviar }: Props) {
     <ul className="lista-dispositivos">
       {dispositivos.map((d) => (
         <li key={d.name} className="item-dispositivo">
-          <div>
-            <p className="nombre-dispositivo">{d.name}</p>
-            <p className="direccion-dispositivo">{d.addresses[0]}:{d.port}</p>
-          </div>
-          <BotonEnviarA onClick={() => onEnviar(d)} />
+          <label className="etiqueta-checkbox-dispositivo">
+            <input
+              type="checkbox"
+              checked={seleccionados.has(d.name)}
+              onChange={() => onToggleSeleccion(d.name)}
+            />
+            <div>
+              <p className="nombre-dispositivo">{d.name}</p>
+              <p className="direccion-dispositivo">{d.addresses[0]}:{d.port}</p>
+            </div>
+          </label>
         </li>
       ))}
     </ul>

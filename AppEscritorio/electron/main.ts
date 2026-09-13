@@ -106,7 +106,7 @@ function iniciarServidorTransferencia() {
   console.log(`Servidor de transferencia escuchando en el puerto ${PUERTO_TRANSFERENCIA}`)
 }
 
-// NUEVO: el usuario ya decidió Aceptar o Rechazar desde la interfaz.
+// el usuario ya decidió Aceptar o Rechazar desde la interfaz.
 function manejarRespuestaDeUsuario(transferId: string, aceptado: boolean) {
   const solicitud = tomarSolicitud(transferId)
   if (!solicitud) return
@@ -118,6 +118,7 @@ function manejarRespuestaDeUsuario(transferId: string, aceptado: boolean) {
       ventanaPrincipal?.webContents.send('progreso-transferencia', {
         transferId,
         nombreArchivo: solicitud.descripcion.nombre,
+        remitente: solicitud.descripcion.remitente, // NUEVO
         bytesRecibidos,
         tamañoEsperado
       })

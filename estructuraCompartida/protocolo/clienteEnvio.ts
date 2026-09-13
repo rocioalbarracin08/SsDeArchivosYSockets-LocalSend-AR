@@ -26,7 +26,17 @@ export function enviarArchivoAPeer(
     remitente: nombreRemitente
   }
 
+  const TIEMPO_LIMITE_RESPUESTA_MS = 55000
+
   const socket = new WebSocket(`ws://${ipDestino}:${puertoDestino}${RUTA_WEBSOCKET}`)
+
+  // Si en 15 segundos nadie contesta si acepta o rechaza, lo damos por perdido
+  // en vez de dejar el estado colgado en "esperando" para siempre.
+  const timeoutRespuesta = setTimeout(() => {
+    console.warn('El destino no respondió a tiempo.')
+    onCambioEstado('error')
+    socket.terminate()
+  }, TIEMPO_LIMITE_RESPUESTA_MS)
 
   socket.on('open', () => {
     onCambioEstado('esperando')
@@ -34,6 +44,7 @@ export function enviarArchivoAPeer(
   })
 
   socket.on('message', async (mensajeRespuesta: WebSocket.RawData) => {
+    clearTimeout(timeoutRespuesta)
     const respuesta = JSON.parse(mensajeRespuesta.toString())
 
     if (respuesta.tipo === 'respuesta' && respuesta.aceptado) {
@@ -50,6 +61,7 @@ export function enviarArchivoAPeer(
   })
 
   socket.on('error', (error: Error) => {
+    clearTimeout(timeoutRespuesta)
     console.error('Error en el envío:', error.message)
     onCambioEstado('error')
     onFalloConexion?.()
