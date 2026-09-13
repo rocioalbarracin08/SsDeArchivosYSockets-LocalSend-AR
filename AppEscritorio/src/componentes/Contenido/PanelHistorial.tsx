@@ -25,6 +25,16 @@ function PanelHistorial({ items, onEliminar }: Props) {
     })
   }
 
+  const todosSeleccionados = items.length > 0 && seleccionados.size === items.length
+
+  function alternarSeleccionTotal() {
+    if (todosSeleccionados) {
+      setSeleccionados(new Set())
+    } else {
+      setSeleccionados(new Set(items.map((item) => item.id)))
+    }
+  }
+
   function eliminarSeleccionados() {
     onEliminar(Array.from(seleccionados))
     setSeleccionados(new Set())
@@ -40,6 +50,15 @@ function PanelHistorial({ items, onEliminar }: Props) {
 
       {abierto && (
         <div className="contenido-historial">
+          <label className="fila-seleccionar-todos">
+            <input
+              type="checkbox"
+              checked={todosSeleccionados}
+              onChange={alternarSeleccionTotal}
+            />
+            {todosSeleccionados ? 'Deseleccionar todos' : 'Seleccionar todos'}
+          </label>
+
           <ul className="lista-historial">
             {items.map((item) => (
               <li key={item.id} className="item-historial">

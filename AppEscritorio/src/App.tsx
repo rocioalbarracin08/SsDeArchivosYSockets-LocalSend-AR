@@ -9,7 +9,7 @@ import { useEnviosSalientes } from './hooks/useEnviosSalientes'
 import type { Dispositivo } from './hooks/useDispositivos'
 
 function App() {
-  const { archivosElegidos, agregarArchivos, quitarArchivo } = useArchivosElegidos()
+  const { archivosElegidos, agregarArchivos, quitarArchivo, vaciarArchivosElegidos } = useArchivosElegidos()
   // Se llama UNA sola vez acá. Si algún otro componente necesita estos datos,
   // se los pasamos por props — nunca volvemos a llamar este hook en otro lado.
   const { activos, historial, registrarEnvio, eliminarEnvios } = useEnviosSalientes()
@@ -27,6 +27,7 @@ function App() {
         window.api.enviarArchivo(envioId, archivo.ruta, dispositivo.addresses, dispositivo.port, dispositivo.name)
       })
     })
+    vaciarArchivosElegidos()
   }
 
   return (

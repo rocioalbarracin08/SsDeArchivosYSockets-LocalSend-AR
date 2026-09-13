@@ -20,5 +20,9 @@ export function useArchivosElegidos() {
     setArchivosElegidos((previos) => previos.filter((a) => a.nombre !== nombre))
   }
 
-  return { archivosElegidos, agregarArchivos, quitarArchivo }
+  function vaciarArchivosElegidos() {
+    setArchivosElegidos([])
+  }
+
+  return { archivosElegidos, agregarArchivos, quitarArchivo, vaciarArchivosElegidos }
 }

@@ -58,3 +58,15 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+.fila-seleccionar-todos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--borde-sutil);
+}
