@@ -24,9 +24,11 @@ function ListaDispositivos({ dispositivos, seleccionados, onToggleSeleccion }: P
           <label className="etiqueta-checkbox-dispositivo">
             <input
               type="checkbox"
+              className="checkbox-oculto"
               checked={seleccionados.has(d.name)}
               onChange={() => onToggleSeleccion(d.name)}
             />
+            <span className="casilla-personalizada" aria-hidden="true"></span>
             <div>
               <p className="nombre-dispositivo">{d.name}</p>
               <p className="direccion-dispositivo">{d.addresses[0]}:{d.port}</p>

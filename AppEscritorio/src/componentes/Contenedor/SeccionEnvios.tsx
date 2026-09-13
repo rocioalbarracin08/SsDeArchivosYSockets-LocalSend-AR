@@ -1,11 +1,17 @@
 import ResumenEnvios from '../Contenido/ResumenEnvios'
 import PanelHistorial from '../Contenido/PanelHistorial'
-import { useEnviosSalientes } from '../../hooks/useEnviosSalientes'
+import type { EnvioSaliente } from '../../hooks/useEnviosSalientes'
 import './Seccion.css'
 
-function SeccionEnvios() {
-  const { activos, historial, eliminarEnvios } = useEnviosSalientes()
+interface Props {
+  activos: EnvioSaliente[]
+  historial: EnvioSaliente[]
+  onEliminar: (ids: string[]) => void
+}
 
+// Ya NO llama a useEnviosSalientes acá adentro — recibe los datos ya listos
+// desde App.tsx, así todos miran la misma "fuente de verdad".
+function SeccionEnvios({ activos, historial, onEliminar }: Props) {
   const itemsHistorial = historial.map((e) => ({
     id: e.envioId,
     etiqueta: `${e.nombreArchivo} → ${e.nombreDispositivo}`,
@@ -19,7 +25,7 @@ function SeccionEnvios() {
         <p className="texto-sin-dispositivos">Todavía no enviaste nada.</p>
       )}
       <ResumenEnvios envios={activos} />
-      <PanelHistorial items={itemsHistorial} onEliminar={eliminarEnvios} />
+      <PanelHistorial items={itemsHistorial} onEliminar={onEliminar} />
     </section>
   )
 }

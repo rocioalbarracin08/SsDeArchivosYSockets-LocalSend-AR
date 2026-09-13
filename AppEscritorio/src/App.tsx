@@ -10,7 +10,10 @@ import type { Dispositivo } from './hooks/useDispositivos'
 
 function App() {
   const { archivosElegidos, agregarArchivos, quitarArchivo } = useArchivosElegidos()
-  const { registrarEnvio } = useEnviosSalientes()
+  // Se llama UNA sola vez acá. Si algún otro componente necesita estos datos,
+  // se los pasamos por props — nunca volvemos a llamar este hook en otro lado.
+  const { activos, historial, registrarEnvio, eliminarEnvios } = useEnviosSalientes()
+
 
   function manejarEnvio(dispositivosSeleccionados: Dispositivo[]) {
     if (archivosElegidos.length === 0) {
@@ -30,13 +33,9 @@ function App() {
     <div style={{ maxWidth: 640, margin: '0 auto', padding: 24 }}>
       <h1>LocalSend</h1>
       <SeccionVisibilidad />
-      <SeccionArchivos
-        archivosElegidos={archivosElegidos}
-        onAgregar={agregarArchivos}
-        onQuitar={quitarArchivo}
-      />
+      <SeccionArchivos archivosElegidos={archivosElegidos} onAgregar={agregarArchivos} onQuitar={quitarArchivo} />
       <SeccionDispositivos onEnviar={manejarEnvio} />
-      <SeccionEnvios />
+      <SeccionEnvios activos={activos} historial={historial} onEliminar={eliminarEnvios} />
       <SeccionRecepciones />
     </div>
   )

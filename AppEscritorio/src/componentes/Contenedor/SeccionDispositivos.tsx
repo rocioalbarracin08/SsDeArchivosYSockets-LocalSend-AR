@@ -24,6 +24,7 @@ function SeccionDispositivos({ onEnviar }: Props) {
   function manejarEnvio() {
     const elegidos = dispositivos.filter((d) => seleccionados.has(d.name))
     onEnviar(elegidos)
+    setSeleccionados(new Set())
   }
 
   return (
