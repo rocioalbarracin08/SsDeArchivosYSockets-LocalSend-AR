@@ -23,8 +23,7 @@ export function desactivarVisibilidad(nombreDispositivo: string) {
   zeroconf.unpublishService(nombreDispositivo)
 }
 
-// Se registra UNA sola vez (por eso el "if" de guarda) — separado de
-// iniciarEscaneo para poder relanzar la búsqueda sin duplicar los callbacks.
+// Se registra UNA sola vez (por eso el "if" de guarda) — separado de iniciarEscaneo para poder relanzar la búsqueda sin duplicar los callbacks.
 export function registrarEscuchasDeDispositivos(
   idPropio: string,
   alEncontrarDispositivo: (dispositivo: Dispositivo) => void,
@@ -38,7 +37,8 @@ export function registrarEscuchasDeDispositivos(
     alEncontrarDispositivo({
       name: servicioEncontrado.name,
       addresses: servicioEncontrado.addresses ?? [],
-      port: servicioEncontrado.port
+      port: servicioEncontrado.port,
+      id: servicioEncontrado.txt?.id   // NUEVO
     })
   })
 

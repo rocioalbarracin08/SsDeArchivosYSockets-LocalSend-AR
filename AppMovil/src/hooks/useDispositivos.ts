@@ -17,8 +17,7 @@ export function useDispositivos() {
       idPropio,
       (dispositivo) => {
         setDispositivos((previos) => {
-          const yaExiste = previos.some((d) => d.name === dispositivo.name)
-          if (yaExiste) return previos
+        const yaExiste = previos.some((d) => d.id === dispositivo.id)  
           marcarCambio()
           return [...previos, dispositivo]
         })
