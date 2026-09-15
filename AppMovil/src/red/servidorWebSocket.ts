@@ -56,7 +56,35 @@ function armarRespuestaHttpDeAceptacion(claveDelCliente: string): string {
   )
 }
 
-// ---------- Parte 2: empaquetar y desempaquetar "frames" ----------
+// Funciones propias para leer/escribir números
+
+function escribirUInt16BE(buffer: Buffer, valor: number, offset: number) {
+  buffer[offset] = (valor >>> 8) & 0xff
+  buffer[offset + 1] = valor & 0xff
+}
+
+function escribirUInt32BE(buffer: Buffer, valor: number, offset: number) {
+  buffer[offset] = (valor >>> 24) & 0xff
+  buffer[offset + 1] = (valor >>> 16) & 0xff
+  buffer[offset + 2] = (valor >>> 8) & 0xff
+  buffer[offset + 3] = valor & 0xff
+}
+
+function leerUInt16BE(buffer: Buffer, offset: number): number {
+  return (buffer[offset] << 8) | buffer[offset + 1]
+}
+
+function leerUInt32BE(buffer: Buffer, offset: number): number {
+  return (
+    (
+      (buffer[offset] << 24) |
+      (buffer[offset + 1] << 16) |
+      (buffer[offset + 2] << 8) |
+      buffer[offset + 3]
+    ) >>> 0
+  )
+}
+// empaquetar y desempaquetar "frames"
 // Un mensaje viaja envuelto en un "frame": encabezado (tipo + largo del
 // contenido) seguido del contenido en sí.
 
@@ -70,13 +98,13 @@ function armarFrameDeSalida(opcode: number, datos: Buffer): Buffer {
     encabezado = Buffer.alloc(4)
     encabezado[0] = 0x80 | opcode
     encabezado[1] = 126
-    encabezado.writeUInt16BE(largoDatos, 2)
+    escribirUInt16BE(encabezado, largoDatos, 2)
   } else {
     encabezado = Buffer.alloc(10)
     encabezado[0] = 0x80 | opcode
     encabezado[1] = 127
-    encabezado.writeUInt32BE(0, 2)
-    encabezado.writeUInt32BE(largoDatos, 6)
+    escribirUInt32BE(encabezado, 0, 2)
+    escribirUInt32BE(encabezado, largoDatos, 6)
   }
 
   // Del servidor hacia el cliente NO hay que enmascarar (el estándar solo
@@ -96,11 +124,11 @@ function intentarLeerUnFrame(buffer: Buffer): { opcode: number; payload: Buffer;
 
   if (largoPayload === 126) {
     if (buffer.length < posicion + 2) return null
-    largoPayload = buffer.readUInt16BE(posicion)
+    largoPayload = leerUInt16BE(buffer, posicion)
     posicion += 2
   } else if (largoPayload === 127) {
     if (buffer.length < posicion + 8) return null
-    largoPayload = buffer.readUInt32BE(posicion + 4) // alcanza con los últimos 4 bytes para nuestros tamaños de archivo
+    largoPayload = leerUInt32BE(buffer, posicion + 4)// alcanza con los últimos 4 bytes para nuestros tamaños de archivo
     posicion += 8
   }
 
