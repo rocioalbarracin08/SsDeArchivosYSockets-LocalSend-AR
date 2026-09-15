@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "AppMovil",
+    "slug": "AppMovil",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rocioalbarracin.AppMovil"
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_WIFI_MULTICAST_STATE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rocioalbarracin.AppMovil"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
