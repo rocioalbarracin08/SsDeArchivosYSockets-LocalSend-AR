@@ -68,7 +68,7 @@ function iniciarServidorTransferencia() {
   const servidorWs = new WebSocketServer({ server: servidorHttp, path: RUTA_WEBSOCKET })
 
   servidorWs.on('connection', (conexion) => {
-    conexion.on('message', (datos, esBinario) => {
+    conexion.on('message', (datos: any, esBinario: boolean) => {
     if (!esBinario) {
       const descripcion = interpretarMensajeMetadatos(datos.toString())
       const transferId = generarIdUnico()
@@ -92,9 +92,8 @@ function iniciarServidorTransferencia() {
       }
       return
     }
-      // Chunk binario: solo se procesa si ya existe una recepción iniciada
-      // (o sea, si el usuario ya aceptó antes).
-      recibirChunk(conexion, datos as Buffer)
+    const chunkBuffer = Buffer.isBuffer(datos) ? datos : Buffer.from(datos)
+    recibirChunk(conexion, chunkBuffer)
     })
 
     conexion.on('close', () => {

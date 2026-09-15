@@ -50,14 +50,21 @@ export function enviarArchivoAPeer(
 
     onCambioEstado('aceptado')
 
-    const archivoOrigen = new File(archivo.uri)
-    const manejadorLectura = archivoOrigen.open()
+  const archivoOrigen = new File(archivo.uri)
+  const manejadorLectura = archivoOrigen.open()
 
-    while (manejadorLectura.offset !== null && manejadorLectura.offset < manejadorLectura.size!) {
-      const pedazo = manejadorLectura.readBytes(TAMAÑO_CHUNK)
-      socket.send(pedazo.buffer)
-    }
-    manejadorLectura.close()
+  while (manejadorLectura.offset !== null && manejadorLectura.offset < manejadorLectura.size!) {
+    const pedazo = manejadorLectura.readBytes(TAMAÑO_CHUNK)
+    
+    // 💡 Extraer solo el subarray exacto de bytes leídos:
+    const bufferExacto = pedazo.buffer.slice(
+      pedazo.byteOffset, 
+      pedazo.byteOffset + pedazo.byteLength
+    )
+    
+    socket.send(bufferExacto)
+  }
+  manejadorLectura.close()
 
     socket.close()
     onCambioEstado('completado')

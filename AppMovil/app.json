@@ -25,6 +25,17 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.rocioalbarracin.AppMovil"
     },
+    "plugins": [
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "LocalSend necesita acceder a tus fotos para guardar lo que recibís.",
+          "savePhotosPermission": "LocalSend necesita guardar los archivos recibidos en tu galería.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      "expo-sharing"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

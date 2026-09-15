@@ -34,12 +34,15 @@ export function iniciarRecepcion(
   })
 }
 
-export function recibirChunk(conexion: WebSocket, chunk: Buffer): boolean {
+export function recibirChunk(conexion: WebSocket, chunk: ArrayBuffer | Buffer): boolean {
   const estado = transferenciasActivas.get(conexion)
   if (!estado) return false
 
-  estado.streamEscritura.write(chunk)
-  estado.bytesRecibidos += chunk.length
+  // FORZAR CONVERSIÓN A BUFFER PURO PARA NO CORROMPER EL ENCABEZADO
+  const bufferLimpio = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+
+  estado.streamEscritura.write(bufferLimpio)
+  estado.bytesRecibidos += bufferLimpio.length
   estado.notificarProgreso(estado.bytesRecibidos, estado.tamañoEsperado)
 
   const transferenciaCompleta = estado.bytesRecibidos >= estado.tamañoEsperado

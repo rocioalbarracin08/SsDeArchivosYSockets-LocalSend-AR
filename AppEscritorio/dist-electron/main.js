@@ -9789,8 +9789,9 @@ function iniciarRecepcion(conexion, descripcion, notificarProgreso) {
 function recibirChunk(conexion, chunk) {
   const estado = transferenciasActivas.get(conexion);
   if (!estado) return false;
-  estado.streamEscritura.write(chunk);
-  estado.bytesRecibidos += chunk.length;
+  const bufferLimpio = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+  estado.streamEscritura.write(bufferLimpio);
+  estado.bytesRecibidos += bufferLimpio.length;
   estado.notificarProgreso(estado.bytesRecibidos, estado.tamañoEsperado);
   const transferenciaCompleta = estado.bytesRecibidos >= estado.tamañoEsperado;
   if (transferenciaCompleta) {
@@ -9872,7 +9873,8 @@ function iniciarServidorTransferencia() {
         }
         return;
       }
-      recibirChunk(conexion, datos);
+      const chunkBuffer = Buffer.isBuffer(datos) ? datos : Buffer.from(datos);
+      recibirChunk(conexion, chunkBuffer);
     });
     conexion.on("close", () => {
       cancelarRecepcion(conexion);

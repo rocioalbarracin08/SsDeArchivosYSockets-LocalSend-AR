@@ -13,7 +13,7 @@ const TEXTOS_ESTADO: Record<string, string> = {
   esperando: 'Esperando que acepte...',
   aceptado: 'Aceptado, transfiriendo...',
   rechazado: 'Rechazado',
-  completado: 'Enviado con éxito',
+  completado: 'Entregado con éxito',
   error: 'No se pudo conectar'
 }
 
@@ -46,11 +46,36 @@ function ResumenEnvios({ envios }: Props) {
 }
 
 const estilos = StyleSheet.create({
-  lista: { marginTop: 14, gap: 6 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colores.fondoTarjeta, borderRadius: 8, padding: 10 },
-  nombreArchivo: { color: colores.textoPrincipal, fontWeight: '600', fontSize: 13 },
-  destino: { color: colores.textoSecundario, fontSize: 13 },
-  estado: { fontSize: 12, marginLeft: 'auto' }
+  lista: {
+    marginTop: 14,
+    gap: 6
+  },
+
+  item: {
+    backgroundColor: colores.fondoTarjeta,
+    borderRadius: 8,
+    padding: 10
+  },
+
+  nombreArchivo: {
+    color: colores.textoPrincipal,
+    fontWeight: '600',
+    fontSize: 13,
+    flexShrink: 1
+  },
+
+  destino: {
+    color: colores.textoSecundario,
+    fontSize: 13,
+    marginTop: 4,
+    flexShrink: 1
+  },
+
+  estado: {
+    fontSize: 12,
+    marginTop: 6,
+    flexShrink: 1
+  }
 })
 
 export default ResumenEnvios

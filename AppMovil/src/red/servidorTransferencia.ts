@@ -5,16 +5,17 @@ import type { ConexionWebSocket } from './servidorWebSocket'
 import { interpretarMensajeMetadatos, crearMensajeRespuesta } from '../../../estructuraCompartida/protocolo/formatoMensaje'
 import { generarIdUnico } from './generarIdUnico'
 import type { DescripcionArchivos } from '../../../estructuraCompartida/tipos/DescripcionArchivos'
+import { guardarArchivoRecibido } from './guardarArchivoRecibido'
 
 export interface SolicitudTransferencia {
   transferId: string
   descripcion: DescripcionArchivos
 }
-
 interface TransferenciaActiva {
   manejador: any
   descripcion: DescripcionArchivos
   bytesRecibidos: number
+  uri: string
 }
 
 const solicitudesPendientes = new Map<string, { conexion: ConexionWebSocket; descripcion: DescripcionArchivos }>()
@@ -56,6 +57,7 @@ export function iniciarServidorTransferencia(puerto: number) {
       if (estado.bytesRecibidos >= estado.descripcion.tamaño) {
         estado.manejador.close()
         transferenciasActivas.delete(transferIdActual)
+        guardarArchivoRecibido(estado.uri, estado.descripcion.nombre)
       }
     })
   })
@@ -80,7 +82,8 @@ export function responderSolicitud(transferId: string, aceptado: boolean) {
   transferenciasActivas.set(transferId, {
     manejador,
     descripcion: solicitud.descripcion,
-    bytesRecibidos: 0
+    bytesRecibidos: 0,
+    uri: archivoDestino.uri
   })
 }
 

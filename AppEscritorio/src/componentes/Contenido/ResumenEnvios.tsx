@@ -12,7 +12,7 @@ const TEXTOS_ESTADO: Record<string, string> = {
   esperando: 'Esperando que acepte...',
   aceptado: 'Aceptado, transfiriendo...',
   rechazado: 'Rechazado',
-  completado: 'Enviado con éxito',
+  completado: 'Entregado con éxito',
   error: 'No se pudo conectar'
 }
 
